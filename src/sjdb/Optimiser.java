@@ -56,12 +56,14 @@ public class Optimiser {
                 project_is_null_att.add(sc);
             }
             List<Attribute> copy = new ArrayList<>(project_is_null_att);
-            Project project = new Project(MakeProjections(op, project_is_null_att),copy);
+            Set<Attribute> copi = new HashSet<>(project_is_null_att);
+            Project project = new Project(MakeProjections(op, copi),copy);
             project.accept(est);
             return project;
         }else{
             List<Attribute> copy = new ArrayList<>(all_attributes);
-            Project pj = new Project(MakeProjections(op, all_attributes),copy);
+            Set<Attribute> copi = new HashSet<>(all_attributes);
+            Project pj = new Project(MakeProjections(op, copi),copy);
             pj.accept(est);
             return pj;
         }
@@ -73,7 +75,6 @@ public class Optimiser {
         if(pl instanceof Select )
         {
             Select temp = (Select) pl;
-            //System.out.println(temp.getPredicate());
             schelet(temp.getInput());
             Selecting(temp);
 
@@ -81,12 +82,7 @@ public class Optimiser {
         if(pl instanceof Project )
         {
             Project temp = (Project) pl;
-            for(Attribute at : temp.getOutput().getAttributes())
-            {
-                System.out.println(at);
-            }
             all_attributes.addAll(temp.getOutput().getAttributes());
-            System.out.println(temp.getAttributes());
             schelet(temp.getInput());
             ok=1;
 
@@ -95,7 +91,6 @@ public class Optimiser {
         {
             Scan temp = (Scan) pl;
             Scanning(temp);
-           // System.out.println(temp.toString());
 
         }
         if(pl instanceof Product )
@@ -228,7 +223,6 @@ public class Optimiser {
             } else {
                 Join new_j = null;
                 for (Join j : joins) {
-                    System.out.println(j.getPredicate());
                     if (!j.getPredicate().equals(sc)) {
                         if (!used_scans.contains(temp) && !used_scans.contains(temp_r)) {
                             used_scans.add(new_rel);
@@ -290,7 +284,6 @@ public class Optimiser {
                     products.add(new_prod);
                 } else {
                     if(op_for_product.size() > i+1) {
-                        System.out.println(products.get(products.size() - 1));
                         Product new_prod = new Product(products.get(products.size() - 1), op_for_product.get(i + 1));
                         products.add(new_prod);
                     }
@@ -320,13 +313,14 @@ public class Optimiser {
         }
 
     }
-    public Operator MakeProjections(Operator op, List<Attribute> att_needed){
-        List<Attribute> now = new ArrayList<>();
+    public Operator MakeProjections(Operator op, Set<Attribute> att_needed){
+        List<Attribute> left_find = new ArrayList<>();
+        List<Attribute> right_find = new ArrayList<>();
+        Set<Attribute> if_left_exist = new HashSet<>();
+        Set<Attribute> if_right_exist = new HashSet<>();
+        Set<Attribute> copy = new HashSet<>(att_needed);
+
        if(op instanceof Product){
-           List<Attribute> left_find= new ArrayList<>();
-           List<Attribute> right_find= new ArrayList<>();
-           List<Attribute> if_left_exist= new ArrayList<>();
-           List<Attribute> if_right_exist= new ArrayList<>();
            left_find.addAll(calculateAtt(((Product) op).getLeft()));
            right_find.addAll(calculateAtt(((Product) op).getRight()));
 
@@ -344,7 +338,7 @@ public class Optimiser {
                if(if_right_exist.size()==0){
                    return op;
                }else{
-                   Project PD= new Project(MakeProjections(((Product) op).getRight(),if_right_exist),att_needed);
+                   Project PD= new Project(MakeProjections(((Product) op).getRight(),if_right_exist),new ArrayList<>(att_needed));
                    PD.accept(est);
                    Product pr =new Product(((Product) op).getLeft(),PD);
                    pr.accept(est);
@@ -352,16 +346,20 @@ public class Optimiser {
                }
            }else{
                if(if_right_exist.size()==0){
-                   Project PL= new Project(MakeProjections(((Product) op).getLeft(),if_left_exist),att_needed);
+                   Project PL= new Project(MakeProjections(((Product) op).getLeft(),if_left_exist),new ArrayList<>(att_needed));
                    PL.accept(est);
                    Product pr = new Product(PL,((Product) op).getRight());
+                   pr.accept(est);
                    return pr;
                }else{
-                   Project PD= new Project(MakeProjections(((Product) op).getRight(),if_right_exist),att_needed);
+                   att_needed.removeAll(if_right_exist);
+                   copy.removeAll(if_left_exist);
+                   Project PD= new Project(MakeProjections(((Product) op).getRight(),if_right_exist),new ArrayList<>(copy));
                    PD.accept(est);
-                   Project PL= new Project(MakeProjections(((Product) op).getLeft(),if_left_exist),att_needed);
+                   Project PL= new Project(MakeProjections(((Product) op).getLeft(),if_left_exist),new ArrayList<>(att_needed));
                    PL.accept(est);
                    Product pr =  new Product(PL,PD);
+                   pr.accept(est);
                    return pr;
                }
            }
@@ -371,33 +369,29 @@ public class Optimiser {
 
        }else {
            if (op instanceof Join) {
-               List<Attribute> tempL = new ArrayList<>();
-               List<Attribute> tempR = new ArrayList<>();
-               List<Attribute> temporary = new ArrayList<>();
-               List<Attribute> temporaryR = new ArrayList<>();
                Attribute left = ((Join) op).getPredicate().getLeftAttribute();
                Attribute right =(((Join) op).getPredicate().getRightAttribute());
                Attribute aux;
                att_needed.add(left);
                att_needed.add(right);
-               tempL.addAll(calculateAtt(((Join) op).getInputs().get(0)));
-               tempR.addAll(calculateAtt(((Join) op).getInputs().get(1)));
+               left_find.addAll(calculateAtt(((Join) op).getInputs().get(0)));
+               right_find.addAll(calculateAtt(((Join) op).getInputs().get(1)));
                for (Attribute at : att_needed) {
-                   if (tempL.contains(at)) {
-                       temporary.add(at);
+                   if (left_find.contains(at)) {
+                       if_left_exist.add(at);
                    } else {
-                       if (tempR.contains(at)) {
-                           temporaryR.add(at);
+                       if (right_find.contains(at)) {
+                           if_right_exist.add(at);
                        }
                    }
                }
-               if(!tempL.contains(left)){
+               if(!left_find.contains(left)){
                    aux= left;
                    left=right;
                    right=aux;
                }
-               Project pL = new Project(MakeProjections(((Join) op).getLeft(), att_needed), temporary);
-               Project pR = new Project(MakeProjections(((Join) op).getRight(), att_needed), temporaryR);
+               Project pL = new Project(MakeProjections(((Join) op).getLeft(), att_needed), new ArrayList<>(if_left_exist));
+               Project pR = new Project(MakeProjections(((Join) op).getRight(), att_needed), new ArrayList<>(if_right_exist));
                pL.accept(est);
                pR.accept(est);
                Join j = new Join(pL, pR, new Predicate(left,right));
@@ -409,12 +403,11 @@ public class Optimiser {
                     if(((Select) op).getPredicate().equalsValue()){
                         return op;
                     }else{
-                        List<Attribute> tempL=new ArrayList<>();
-                        tempL.addAll(att_needed);
-                        tempL.add((((Select) op).getPredicate().getLeftAttribute()));
-                        tempL.add((((Select) op).getPredicate().getRightAttribute()));
+                        left_find.addAll(att_needed);
+                        left_find.add((((Select) op).getPredicate().getLeftAttribute()));
+                        left_find.add((((Select) op).getPredicate().getRightAttribute()));
 
-                        Project pj = new Project( (MakeProjections(((Select) op).getInput(),tempL)),att_needed);
+                        Project pj = new Project( (MakeProjections(((Select) op).getInput(),new HashSet<>(left_find))),new ArrayList<>(att_needed));
                         pj.accept(est);
                         Select sx = new Select(pj,((Select) op).getPredicate());
 
@@ -429,7 +422,7 @@ public class Optimiser {
            }
        }
 
-       return op; ///schimba
+       return op;
     }
 
     public List<Attribute> calculateAtt(Operator op){
