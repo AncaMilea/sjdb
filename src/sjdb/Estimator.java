@@ -1,5 +1,6 @@
 package sjdb;
 
+import com.sun.prism.shader.AlphaTexture_Color_AlphaTest_Loader;
 import org.w3c.dom.Attr;
 
 import java.util.List;
@@ -51,15 +52,12 @@ public class Estimator implements PlanVisitor {
 
 		if(op.getPredicate().equalsValue()) {
 			output = new Relation(input.getTupleCount()/input.getAttribute(op.getPredicate().getLeftAttribute()).getValueCount());
-			Iterator<Attribute> it = input.getAttributes().iterator();
-			Attribute now;
 			Attribute left_pred= op.getPredicate().getLeftAttribute();
-			while (it.hasNext()) {
-				now = it.next();
-				if(now.equals(left_pred)){
-					output.addAttribute(new Attribute(now.getName(),1));
+			for(Attribute it:input.getAttributes()) {
+				if(it.equals(left_pred)){
+					output.addAttribute(new Attribute(it.getName(),1));
 				}else {
-					output.addAttribute(new Attribute(now));
+					output.addAttribute(new Attribute(it));
 				}
 			}
 		}else{
@@ -68,14 +66,11 @@ public class Estimator implements PlanVisitor {
 
 			output = new Relation(input.getTupleCount()/Math.max(left.getValueCount(),right.getValueCount()));
 
-			Iterator<Attribute> it = input.getAttributes().iterator();
-			Attribute now;
-			while (it.hasNext()) {
-				now = it.next();
-				if (now.equals(left) || now.equals(right)) {
-					output.addAttribute(new Attribute(now.getName(), Math.min(left.getValueCount(), right.getValueCount())));
+			for (Attribute it:input.getAttributes()) {
+				if (it.equals(left) || it.equals(right)) {
+					output.addAttribute(new Attribute(it.getName(), Math.min(left.getValueCount(), right.getValueCount())));
 				} else {
-					output.addAttribute(new Attribute(now));
+					output.addAttribute(new Attribute(it));
 				}
 			}
 		}
@@ -88,14 +83,12 @@ public class Estimator implements PlanVisitor {
 		Relation right = op.getRight().getOutput();
 		Relation output = new Relation(left.getTupleCount()*right.getTupleCount());
 
-		Iterator<Attribute> iter_l = left.getAttributes().iterator();
-		while (iter_l.hasNext()) {
-			output.addAttribute(new Attribute(iter_l.next()));
+		for (Attribute iter_l: left.getAttributes()) {
+			output.addAttribute(new Attribute(iter_l));
 		}
 
-		Iterator<Attribute> iter_r = right.getAttributes().iterator();
-		while (iter_r.hasNext()) {
-			output.addAttribute(new Attribute(iter_r.next()));
+		for (Attribute iter_r: right.getAttributes()) {
+			output.addAttribute(new Attribute(iter_r));
 		}
 
 		op.setOutput(output);
@@ -109,26 +102,21 @@ public class Estimator implements PlanVisitor {
 		Attribute right_pred = op.getPredicate().getRightAttribute();
 
 		Relation output = new Relation(left.getTupleCount() * right.getTupleCount() /Math.max(left.getAttribute(left_pred).getValueCount(),right.getAttribute(right_pred).getValueCount()));
-		Attribute now;
 
-		Iterator<Attribute> left_it = left.getAttributes().iterator();
-		while (left_it.hasNext()){
-			now = left_it.next();
-			if(now.equals(left_pred)){
-				output.addAttribute(new Attribute(now.getName(),Math.min(left_pred.getValueCount(),right_pred.getValueCount())));
+		for(Attribute left_it: left.getAttributes()){
+			if(left_it.equals(left_pred)){
+				output.addAttribute(new Attribute(left_it.getName(),Math.min(left_pred.getValueCount(),right_pred.getValueCount())));
 			}else {
-				output.addAttribute(new Attribute(now.getName(),now.getValueCount()));
+				output.addAttribute(new Attribute(left_it.getName(),left_it.getValueCount()));
 			}
 		}
 
-		Iterator<Attribute> right_it = right.getAttributes().iterator();
-		while (right_it.hasNext()){
-			now =  right_it.next();
-			if(now.equals(right_pred)) {
-				output.addAttribute(new Attribute(now.getName(), Math.min(left_pred.getValueCount(), right_pred.getValueCount())));
+		for (Attribute right_it:right.getAttributes()){
+			if(right_it.equals(right_pred)) {
+				output.addAttribute(new Attribute(right_it.getName(), Math.min(left_pred.getValueCount(), right_pred.getValueCount())));
 			}
 			else {
-				output.addAttribute(new Attribute(now.getName(),now.getValueCount()));
+				output.addAttribute(new Attribute(right_it.getName(),right_it.getValueCount()));
 			}
 		}
 
