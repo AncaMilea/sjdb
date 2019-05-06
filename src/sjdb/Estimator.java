@@ -13,7 +13,7 @@ public class Estimator implements PlanVisitor {
 		// empty constructor
 	}
 
-	/* 
+	/*
 	 * Create output relation on Scan operator
 	 *
 	 * Example implementation of visit method for Scan operators.
@@ -21,12 +21,12 @@ public class Estimator implements PlanVisitor {
 	public void visit(Scan op) {
 		Relation input = op.getRelation();
 		Relation output = new Relation(input.getTupleCount());
-		
+
 		Iterator<Attribute> iter = input.getAttributes().iterator();
 		while (iter.hasNext()) {
 			output.addAttribute(new Attribute(iter.next()));
 		}
-		
+
 		op.setOutput(output);
 	}
 
@@ -44,7 +44,7 @@ public class Estimator implements PlanVisitor {
 
 		op.setOutput(output);
 	}
-	
+
 	public void visit(Select op) {
 		Relation input = op.getInput().getOutput();
 		Relation output;
@@ -82,7 +82,7 @@ public class Estimator implements PlanVisitor {
 		op.setOutput(output);
 
 	}
-	
+
 	public void visit(Product op) {
 		Relation left = op.getLeft().getOutput();
 		Relation right = op.getRight().getOutput();
@@ -100,7 +100,7 @@ public class Estimator implements PlanVisitor {
 
 		op.setOutput(output);
 	}
-	
+
 	public void visit(Join op) {
 		Relation left = op.getLeft().getOutput();
 		Relation right = op.getRight().getOutput();
@@ -108,7 +108,7 @@ public class Estimator implements PlanVisitor {
 		Attribute left_pred = op.getPredicate().getLeftAttribute();
 		Attribute right_pred = op.getPredicate().getRightAttribute();
 
-		Relation output = new Relation(left.getTupleCount() * right.getTupleCount() /Math.max(left_pred.getValueCount(),right_pred.getValueCount()));
+		Relation output = new Relation(left.getTupleCount() * right.getTupleCount() /Math.max(left.getAttribute(left_pred).getValueCount(),right.getAttribute(right_pred).getValueCount()));
 		Attribute now;
 
 		Iterator<Attribute> left_it = left.getAttributes().iterator();
