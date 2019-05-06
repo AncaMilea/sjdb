@@ -1,10 +1,6 @@
 package sjdb;
 
-import com.sun.prism.shader.AlphaTexture_Color_AlphaTest_Loader;
-import org.w3c.dom.Attr;
 
-import java.util.List;
-import java.util.ArrayList;
 import java.util.Iterator;
 
 public class Estimator implements PlanVisitor {
